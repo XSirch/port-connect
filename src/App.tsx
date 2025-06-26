@@ -1,14 +1,18 @@
-import React, { useState } from 'react'
+import React, { useState, Suspense } from 'react'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
 import { ToastProvider } from './contexts/ToastContext'
+import ErrorBoundary from './components/ui/ErrorBoundary'
 import Auth from './components/Auth'
 import Layout from './components/Layout'
-import Dashboard from './components/Dashboard'
-import ServiceManagement from './components/ServiceManagement'
-import ReservationManagement from './components/ReservationManagement'
-import PortManagement from './components/PortManagement'
 import LoadingSpinner from './components/ui/LoadingSpinner'
+import { DashboardSkeleton } from './components/ui/SkeletonLoader'
 import './App.css'
+
+// Lazy loading dos componentes principais
+const Dashboard = React.lazy(() => import('./components/Dashboard'))
+const ServiceManagement = React.lazy(() => import('./components/ServiceManagement'))
+const ReservationManagement = React.lazy(() => import('./components/ReservationManagement'))
+const PortManagement = React.lazy(() => import('./components/PortManagement'))
 
 const AppContent: React.FC = () => {
   const { user, loading } = useAuth()
@@ -29,32 +33,56 @@ const AppContent: React.FC = () => {
   const renderCurrentPage = () => {
     switch (currentPage) {
       case 'dashboard':
-        return <Dashboard />
+        return (
+          <Suspense fallback={<DashboardSkeleton />}>
+            <Dashboard />
+          </Suspense>
+        )
       case 'services':
-        return <ServiceManagement />
+        return (
+          <Suspense fallback={<DashboardSkeleton />}>
+            <ServiceManagement />
+          </Suspense>
+        )
       case 'reservations':
-        return <ReservationManagement />
+        return (
+          <Suspense fallback={<DashboardSkeleton />}>
+            <ReservationManagement />
+          </Suspense>
+        )
       case 'management':
-        return <PortManagement />
+        return (
+          <Suspense fallback={<DashboardSkeleton />}>
+            <PortManagement />
+          </Suspense>
+        )
       default:
-        return <Dashboard />
+        return (
+          <Suspense fallback={<DashboardSkeleton />}>
+            <Dashboard />
+          </Suspense>
+        )
     }
   }
 
   return (
     <Layout currentPage={currentPage} onNavigate={setCurrentPage}>
-      {renderCurrentPage()}
+      <ErrorBoundary>
+        {renderCurrentPage()}
+      </ErrorBoundary>
     </Layout>
   )
 }
 
 function App() {
   return (
-    <ToastProvider>
-      <AuthProvider>
-        <AppContent />
-      </AuthProvider>
-    </ToastProvider>
+    <ErrorBoundary>
+      <ToastProvider>
+        <AuthProvider>
+          <AppContent />
+        </AuthProvider>
+      </ToastProvider>
+    </ErrorBoundary>
   )
 }
 
