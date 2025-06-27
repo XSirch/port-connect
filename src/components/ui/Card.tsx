@@ -6,6 +6,7 @@ interface CardProps {
   padding?: 'none' | 'sm' | 'md' | 'lg'
   shadow?: 'none' | 'soft' | 'medium' | 'strong'
   hover?: boolean
+  onClick?: () => void
 }
 
 const Card: React.FC<CardProps> = ({
@@ -13,7 +14,8 @@ const Card: React.FC<CardProps> = ({
   className = '',
   padding = 'md',
   shadow = 'soft',
-  hover = false
+  hover = false,
+  onClick
 }) => {
   const baseClasses = 'bg-white rounded-xl border border-secondary-200 transition-all duration-200'
   
@@ -36,7 +38,7 @@ const Card: React.FC<CardProps> = ({
   const classes = `${baseClasses} ${paddings[padding]} ${shadows[shadow]} ${hoverEffect} ${className}`
   
   return (
-    <div className={classes}>
+    <div className={classes} onClick={onClick}>
       {children}
     </div>
   )

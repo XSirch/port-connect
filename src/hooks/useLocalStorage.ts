@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 
 function useLocalStorage<T>(key: string, initialValue: T) {
   // Estado para armazenar o valor
@@ -10,7 +10,6 @@ function useLocalStorage<T>(key: string, initialValue: T) {
       return item ? JSON.parse(item) : initialValue
     } catch (error) {
       // Se erro, retorna o valor inicial
-      console.error(`Error reading localStorage key "${key}":`, error)
       return initialValue
     }
   })
@@ -26,7 +25,7 @@ function useLocalStorage<T>(key: string, initialValue: T) {
       window.localStorage.setItem(key, JSON.stringify(valueToStore))
     } catch (error) {
       // Uma implementação mais avançada lidaria com o caso de localStorage estar cheio
-      console.error(`Error setting localStorage key "${key}":`, error)
+      // Silently fail for localStorage errors
     }
   }
 

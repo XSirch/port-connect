@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react'
-import { useAuth } from '../contexts/AuthContext'
-import { useToast } from '../contexts/ToastContext'
+import React, { useState, useEffect, useCallback } from 'react'
+import { useAuth } from '../hooks/useAuth'
+import { useToast } from '../hooks/useToast'
 import { supabase, type Reservation, type Service, type Port } from '../lib/supabase'
-import { Calendar, Clock, Ship, Plus, Filter, TrendingUp } from 'lucide-react'
+import { Ship, Calendar, Clock, Plus, Filter, TrendingUp } from 'lucide-react'
 import { format } from 'date-fns'
 import ReservationForm from './ReservationForm'
 import Card from './ui/Card'
@@ -11,21 +11,28 @@ import Badge from './ui/Badge'
 import LoadingSpinner from './ui/LoadingSpinner'
 import EmptyState from './ui/EmptyState'
 
-const Dashboard: React.FC = () => {
+// Extended type for reservations with joined data
+type ReservationWithRelations = Reservation & {
+  services?: Service & {
+    ports?: Port
+  }
+}
+
+interface DashboardProps {
+  setCurrentPage: (page: string) => void
+}
+
+const Dashboard: React.FC<DashboardProps> = ({ setCurrentPage }) => {
   const { user } = useAuth()
-  const { showSuccess } = useToast()
-  const [reservations, setReservations] = useState<Reservation[]>([])
+  const { showSuccess, showError } = useToast()
+  const [reservations, setReservations] = useState<ReservationWithRelations[]>([])
   const [services, setServices] = useState<Service[]>([])
   const [, setPorts] = useState<Port[]>([])
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState<'all' | 'pending' | 'confirmed' | 'completed'>('all')
   const [showReservationForm, setShowReservationForm] = useState(false)
 
-  useEffect(() => {
-    fetchData()
-  }, [user])
-
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     if (!user) return
 
     try {
@@ -49,7 +56,7 @@ const Dashboard: React.FC = () => {
       const { data: reservationsData, error: reservationsError } = await reservationsQuery
 
       if (reservationsError) {
-        console.error('Error fetching reservations:', reservationsError)
+        showError('Failed to load reservations', 'Please refresh the page and try again')
       } else {
         setReservations(reservationsData || [])
       }
@@ -62,7 +69,7 @@ const Dashboard: React.FC = () => {
           .eq('provider_id', user.id)
 
         if (servicesError) {
-          console.error('Error fetching services:', servicesError)
+          showError('Failed to load services', 'Please refresh the page and try again')
         } else {
           setServices(servicesData || [])
         }
@@ -74,16 +81,20 @@ const Dashboard: React.FC = () => {
         .select('*')
 
       if (portsError) {
-        console.error('Error fetching ports:', portsError)
+        showError('Failed to load ports', 'Please refresh the page and try again')
       } else {
         setPorts(portsData || [])
       }
     } catch (error) {
-      console.error('Error in fetchData:', error)
+      showError('Failed to load dashboard data', 'Please refresh the page and try again')
     } finally {
       setLoading(false)
     }
-  }
+  }, [user])
+
+  useEffect(() => {
+    fetchData()
+  }, [fetchData])
 
   const getStatusVariant = (status: string): 'warning' | 'success' | 'error' | 'primary' | 'secondary' => {
     switch (status) {
@@ -220,7 +231,7 @@ const Dashboard: React.FC = () => {
               <Filter className="h-4 w-4 text-secondary-400" />
               <select
                 value={filter}
-                onChange={(e) => setFilter(e.target.value as any)}
+                onChange={(e) => setFilter(e.target.value as 'all' | 'pending' | 'confirmed' | 'completed')}
                 className="text-sm border-secondary-300 rounded-lg px-3 py-1.5 focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
               >
                 <option value="all">All Status</option>
@@ -259,11 +270,17 @@ const Dashboard: React.FC = () => {
             />
           ) : (
             filteredReservations.map((reservation) => (
-              <Card key={reservation.id} padding="md" hover className="group cursor-pointer">
+              <Card
+                key={reservation.id}
+                padding="md"
+                hover
+                className="group cursor-pointer"
+                onClick={() => setCurrentPage('reservations')}
+              >
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-4">
                     <div className="text-3xl p-2 bg-secondary-100 rounded-lg group-hover:bg-secondary-200 transition-colors">
-                      {getServiceTypeIcon((reservation as any).services?.type || 'tugboat')}
+                      {getServiceTypeIcon(reservation.services?.type || 'tugboat')}
                     </div>
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-1">
@@ -277,7 +294,7 @@ const Dashboard: React.FC = () => {
                         )}
                       </div>
                       <p className="text-sm text-secondary-600 mb-2">
-                        {(reservation as any).services?.name} • {(reservation as any).services?.ports?.name}
+                        {reservation.services?.name} • {reservation.services?.ports?.name}
                       </p>
                       <div className="flex items-center gap-4 text-xs text-secondary-500">
                         <div className="flex items-center gap-1">

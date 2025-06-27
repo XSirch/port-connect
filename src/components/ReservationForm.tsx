@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react'
-import { useAuth } from '../contexts/AuthContext'
+import { useAuth } from '../hooks/useAuth'
+import { useToast } from '../hooks/useToast'
 import { supabase, type Service, type Port } from '../lib/supabase'
 import { Calendar, Ship, MapPin, DollarSign } from 'lucide-react'
+
 
 interface ReservationFormProps {
   onClose: () => void
@@ -10,6 +12,7 @@ interface ReservationFormProps {
 
 const ReservationForm: React.FC<ReservationFormProps> = ({ onClose, onSuccess }) => {
   const { user } = useAuth()
+  const { showSuccess, showError } = useToast()
   const [loading, setLoading] = useState(false)
   const [ports, setPorts] = useState<Port[]>([])
   const [services, setServices] = useState<Service[]>([])
@@ -92,11 +95,12 @@ const ReservationForm: React.FC<ReservationFormProps> = ({ onClose, onSuccess })
 
       if (error) throw error
 
-      alert('Reservation created successfully!')
+      showSuccess('Reservation created successfully!', 'Your reservation has been submitted and is pending approval.')
       onSuccess()
       onClose()
-    } catch (error: any) {
-      alert(error.message)
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred'
+      showError('Failed to create reservation', errorMessage)
     } finally {
       setLoading(false)
     }

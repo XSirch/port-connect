@@ -23,8 +23,8 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   line-height: 1.5;
-  color: theme('colors.secondary.900');
-  background-color: theme('colors.secondary.50');
+  color: #0f172a;
+  background-color: #f8fafc;
 }
 
 /* Melhorias de acessibilidade */
@@ -41,7 +41,7 @@ body {
 
 /* Focus styles melhorados */
 :focus-visible {
-  outline: 2px solid theme('colors.primary.500');
+  outline: 2px solid #0ea5e9;
   outline-offset: 2px;
 }
 
@@ -52,17 +52,17 @@ body {
 }
 
 ::-webkit-scrollbar-track {
-  background: theme('colors.secondary.100');
+  background: #f1f5f9;
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: theme('colors.secondary.300');
+  background: #cbd5e1;
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: theme('colors.secondary.400');
+  background: #94a3b8;
 }
 
 /* Utilitários customizados */
@@ -101,32 +101,7 @@ body {
   }
 }
 
-/* Componentes base */
-@layer components {
-  .btn {
-    @apply inline-flex items-center justify-center font-medium rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed;
-  }
-  
-  .btn-primary {
-    @apply bg-primary-600 text-white hover:bg-primary-700 focus:ring-primary-500 shadow-sm hover:shadow-md;
-  }
-  
-  .btn-secondary {
-    @apply bg-secondary-100 text-secondary-900 hover:bg-secondary-200 focus:ring-secondary-500;
-  }
-  
-  .card {
-    @apply bg-white rounded-xl border border-secondary-200 shadow-soft;
-  }
-  
-  .input {
-    @apply block w-full px-3 py-2 border border-secondary-300 rounded-lg text-sm transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500;
-  }
-  
-  .input-error {
-    @apply border-error-300 text-error-900 placeholder-error-300 focus:ring-error-500 focus:border-error-500;
-  }
-}
+/* Componentes base removidos para evitar conflitos com Tailwind */
 
 /* Animações personalizadas */
 @keyframes shimmer {

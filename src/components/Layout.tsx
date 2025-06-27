@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { useAuth } from '../contexts/AuthContext'
+import { useAuth } from '../hooks/useAuth'
 import { Anchor, LogOut, Menu, Bell, User, ChevronDown } from 'lucide-react'
 import NotificationCenter from './NotificationCenter'
 import Button from './ui/Button'

@@ -16,6 +16,7 @@ export interface Database {
           name: string
           role: 'terminal' | 'provider' | 'captain'
           company: string | null
+          port_id: string | null
           created_at: string
           updated_at: string
         }
@@ -25,6 +26,7 @@ export interface Database {
           name: string
           role?: 'terminal' | 'provider' | 'captain'
           company?: string | null
+          port_id?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -34,6 +36,7 @@ export interface Database {
           name?: string
           role?: 'terminal' | 'provider' | 'captain'
           company?: string | null
+          port_id?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -71,7 +74,7 @@ export interface Database {
         Row: {
           id: string
           name: string
-          type: 'tugboat' | 'bunkering' | 'cleaning' | 'maintenance'
+          type: 'tugboat' | 'bunkering' | 'cleaning' | 'maintenance' | 'cargo_handling' | 'vessel_berthing' | 'pilotage' | 'customs_clearance' | 'waste_disposal' | 'security'
           description: string | null
           port_id: string
           provider_id: string
@@ -83,7 +86,7 @@ export interface Database {
         Insert: {
           id?: string
           name: string
-          type: 'tugboat' | 'bunkering' | 'cleaning' | 'maintenance'
+          type: 'tugboat' | 'bunkering' | 'cleaning' | 'maintenance' | 'cargo_handling' | 'vessel_berthing' | 'pilotage' | 'customs_clearance' | 'waste_disposal' | 'security'
           description?: string | null
           port_id: string
           provider_id: string
@@ -164,7 +167,7 @@ export interface Database {
     }
     Enums: {
       user_role: 'terminal' | 'provider' | 'captain'
-      service_type: 'tugboat' | 'bunkering' | 'cleaning' | 'maintenance'
+      service_type: 'tugboat' | 'bunkering' | 'cleaning' | 'maintenance' | 'cargo_handling' | 'vessel_berthing' | 'pilotage' | 'customs_clearance' | 'waste_disposal' | 'security'
       reservation_status: 'pending' | 'confirmed' | 'rejected' | 'completed' | 'cancelled'
     }
     CompositeTypes: {

@@ -7,6 +7,7 @@
 ![TypeScript](https://img.shields.io/badge/TypeScript-5-blue)
 ![Tailwind CSS](https://img.shields.io/badge/Tailwind%20CSS-3-blue)
 ![Supabase](https://img.shields.io/badge/Supabase-Backend-green)
+[![CI/CD Pipeline](https://github.com/XSirch/port-connect/actions/workflows/ci.yml/badge.svg)](https://github.com/XSirch/port-connect/actions/workflows/ci.yml)
 
 ## 🌟 Key Features
 
@@ -66,7 +67,7 @@ PortConnect uses a modern and consistent design system:
 
 ### 1. Clone the repository
 ```bash
-git clone https://github.com/your-username/port-connect.git
+git clone https://github.com/XSirch/port-connect.git
 cd port-connect
 ```
 
@@ -144,4 +145,4 @@ This project was developed for the Bolt.new hackathon, demonstrating the platfor
 
 ---
 
-**Built with ❤️ using [Bolt.new](https://bolt.new)**
+**Built using [Bolt.new](https://bolt.new)**

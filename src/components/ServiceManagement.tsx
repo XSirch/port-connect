@@ -1,31 +1,43 @@
-import React, { useState, useEffect } from 'react'
-import { useAuth } from '../contexts/AuthContext'
+import React, { useState, useEffect, useCallback } from 'react'
+import { useAuth } from '../hooks/useAuth'
+import { useToast } from '../hooks/useToast'
 import { supabase, type Service, type Port } from '../lib/supabase'
+
+// Extended type for services with joined data
+type ServiceWithPort = Service & {
+  ports?: Port
+}
 import { Plus, Edit, Trash2, MapPin, DollarSign, ToggleLeft, ToggleRight } from 'lucide-react'
+
+import ConfirmModal from './ui/ConfirmModal'
 
 const ServiceManagement: React.FC = () => {
   const { user } = useAuth()
-  const [services, setServices] = useState<Service[]>([])
+  const { showSuccess, showError } = useToast()
+  const [services, setServices] = useState<ServiceWithPort[]>([])
   const [ports, setPorts] = useState<Port[]>([])
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
-  const [editingService, setEditingService] = useState<Service | null>(null)
+  const [editingService, setEditingService] = useState<ServiceWithPort | null>(null)
+  const [deleteModal, setDeleteModal] = useState<{
+    isOpen: boolean
+    service: ServiceWithPort | null
+    loading: boolean
+  }>({
+    isOpen: false,
+    service: null,
+    loading: false
+  })
   const [formData, setFormData] = useState({
     name: '',
-    type: 'tugboat' as 'tugboat' | 'bunkering' | 'cleaning' | 'maintenance',
+    type: 'tugboat' as 'tugboat' | 'bunkering' | 'cleaning' | 'maintenance' | 'cargo_handling' | 'vessel_berthing' | 'pilotage' | 'customs_clearance' | 'waste_disposal' | 'security',
     description: '',
     port_id: '',
     price_per_hour: '',
     availability: true
   })
 
-  useEffect(() => {
-    if (user?.role === 'provider') {
-      fetchData()
-    }
-  }, [user])
-
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     try {
       setLoading(true)
 
@@ -55,7 +67,13 @@ const ServiceManagement: React.FC = () => {
     } finally {
       setLoading(false)
     }
-  }
+  }, [user])
+
+  useEffect(() => {
+    if (user?.role === 'provider') {
+      fetchData()
+    }
+  }, [user, fetchData])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -79,24 +97,25 @@ const ServiceManagement: React.FC = () => {
           .eq('id', editingService.id)
 
         if (error) throw error
-        alert('Service updated successfully!')
+        showSuccess('Service updated successfully!', 'Your service has been updated.')
       } else {
         const { error } = await supabase
           .from('services')
           .insert([serviceData])
 
         if (error) throw error
-        alert('Service created successfully!')
+        showSuccess('Service created successfully!', 'Your new service is now available.')
       }
 
       resetForm()
       fetchData()
-    } catch (error: any) {
-      alert(error.message)
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred'
+      showError('Failed to save service', errorMessage)
     }
   }
 
-  const handleEdit = (service: Service) => {
+  const handleEdit = (service: ServiceWithPort) => {
     setEditingService(service)
     setFormData({
       name: service.name,
@@ -110,7 +129,7 @@ const ServiceManagement: React.FC = () => {
   }
 
   const handleDelete = async (serviceId: string) => {
-    if (!confirm('Are you sure you want to delete this service?')) return
+    setDeleteModal(prev => ({ ...prev, loading: true }))
 
     try {
       const { error } = await supabase
@@ -119,14 +138,18 @@ const ServiceManagement: React.FC = () => {
         .eq('id', serviceId)
 
       if (error) throw error
-      alert('Service deleted successfully!')
+      showSuccess('Service deleted successfully!', 'The service has been removed.')
       fetchData()
-    } catch (error: any) {
-      alert(error.message)
+      setDeleteModal({ isOpen: false, service: null, loading: false })
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred'
+      showError('Failed to delete service', errorMessage)
+    } finally {
+      setDeleteModal(prev => ({ ...prev, loading: false }))
     }
   }
 
-  const toggleAvailability = async (service: Service) => {
+  const toggleAvailability = async (service: ServiceWithPort) => {
     try {
       const { error } = await supabase
         .from('services')
@@ -135,8 +158,10 @@ const ServiceManagement: React.FC = () => {
 
       if (error) throw error
       fetchData()
-    } catch (error: any) {
-      alert(error.message)
+      showSuccess('Service availability updated', `Service is now ${!service.availability ? 'available' : 'unavailable'}.`)
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred'
+      showError('Failed to update service availability', errorMessage)
     }
   }
 
@@ -159,6 +184,12 @@ const ServiceManagement: React.FC = () => {
       case 'bunkering': return '⛽'
       case 'cleaning': return '🧽'
       case 'maintenance': return '🔧'
+      case 'cargo_handling': return '📦'
+      case 'vessel_berthing': return '🏗️'
+      case 'pilotage': return '🧭'
+      case 'customs_clearance': return '📋'
+      case 'waste_disposal': return '♻️'
+      case 'security': return '🛡️'
       default: return '⚓'
     }
   }
@@ -220,7 +251,7 @@ const ServiceManagement: React.FC = () => {
             <div className="space-y-2 mb-4">
               <div className="flex items-center text-sm text-gray-600">
                 <MapPin className="h-4 w-4 mr-2" />
-                {(service as any).ports?.name}
+                {service.ports?.name}
               </div>
               {service.price_per_hour && (
                 <div className="flex items-center text-sm text-gray-600">
@@ -251,7 +282,11 @@ const ServiceManagement: React.FC = () => {
                   <Edit className="h-4 w-4" />
                 </button>
                 <button
-                  onClick={() => handleDelete(service.id)}
+                  onClick={() => setDeleteModal({
+                    isOpen: true,
+                    service,
+                    loading: false
+                  })}
                   className="p-1 text-gray-400 hover:text-red-600"
                 >
                   <Trash2 className="h-4 w-4" />
@@ -304,13 +339,19 @@ const ServiceManagement: React.FC = () => {
                 <select
                   required
                   value={formData.type}
-                  onChange={(e) => setFormData({...formData, type: e.target.value as any})}
+                  onChange={(e) => setFormData({...formData, type: e.target.value as 'tugboat' | 'bunkering' | 'cleaning' | 'maintenance' | 'cargo_handling' | 'vessel_berthing' | 'pilotage' | 'customs_clearance' | 'waste_disposal' | 'security'})}
                   className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                 >
                   <option value="tugboat">Tugboat</option>
                   <option value="bunkering">Bunkering</option>
                   <option value="cleaning">Cleaning</option>
                   <option value="maintenance">Maintenance</option>
+                  <option value="cargo_handling">Cargo Handling</option>
+                  <option value="vessel_berthing">Vessel Berthing</option>
+                  <option value="pilotage">Pilotage</option>
+                  <option value="customs_clearance">Customs Clearance</option>
+                  <option value="waste_disposal">Waste Disposal</option>
+                  <option value="security">Security</option>
                 </select>
               </div>
 
@@ -385,6 +426,18 @@ const ServiceManagement: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Delete Confirmation Modal */}
+      <ConfirmModal
+        isOpen={deleteModal.isOpen}
+        onClose={() => setDeleteModal({ isOpen: false, service: null, loading: false })}
+        onConfirm={() => deleteModal.service && handleDelete(deleteModal.service.id)}
+        title="Delete Service"
+        message={`Are you sure you want to delete "${deleteModal.service?.name}"? This action cannot be undone.`}
+        type="danger"
+        confirmText="Delete"
+        loading={deleteModal.loading}
+      />
     </div>
   )
 }

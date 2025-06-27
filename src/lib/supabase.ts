@@ -8,7 +8,21 @@ if (!supabaseUrl || !supabaseAnonKey) {
   throw new Error('Missing Supabase environment variables')
 }
 
-export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey)
+// Create Supabase client with proper configuration
+export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
+  auth: {
+    autoRefreshToken: true,
+    persistSession: true,
+    detectSessionInUrl: true,
+    flowType: 'pkce',
+    debug: import.meta.env.DEV
+  },
+  global: {
+    headers: {
+      'X-Client-Info': 'portconnect-web'
+    }
+  }
+})
 
 // Database types - using the generated types
 export type User = Database['public']['Tables']['users']['Row']

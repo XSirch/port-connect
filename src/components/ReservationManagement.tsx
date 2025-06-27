@@ -1,22 +1,42 @@
-import React, { useState, useEffect } from 'react'
-import { useAuth } from '../contexts/AuthContext'
-import { supabase, type Reservation } from '../lib/supabase'
-import { Calendar, Clock, Ship, Check, X } from 'lucide-react'
+import React, { useState, useEffect, useCallback } from 'react'
+import { useAuth } from '../hooks/useAuth'
+import { useToast } from '../hooks/useToast'
+import { supabase, type Reservation, type Service, type User } from '../lib/supabase'
 import { format } from 'date-fns'
+import { Calendar, Clock, Ship, Check, X } from 'lucide-react'
+import LoadingSpinner from './ui/LoadingSpinner'
+import StatusBadge from './ui/StatusBadge'
+import ConfirmModal from './ui/ConfirmModal'
+
+// Extended type for reservations with joined data
+type ReservationWithService = Reservation & {
+  services?: Service & {
+    ports?: { name: string }
+  }
+  users?: User
+}
 
 const ReservationManagement: React.FC = () => {
   const { user } = useAuth()
-  const [reservations, setReservations] = useState<Reservation[]>([])
+  const { showSuccess, showError } = useToast()
+  const [reservations, setReservations] = useState<ReservationWithService[]>([])
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState<'all' | 'pending' | 'confirmed' | 'completed'>('all')
-  const [selectedReservation, setSelectedReservation] = useState<Reservation | null>(null)
+  const [selectedReservation, setSelectedReservation] = useState<ReservationWithService | null>(null)
   const [providerNotes, setProviderNotes] = useState('')
+  const [confirmModal, setConfirmModal] = useState<{
+    isOpen: boolean
+    type: 'confirm' | 'reject' | 'complete'
+    reservation: ReservationWithService | null
+    loading: boolean
+  }>({
+    isOpen: false,
+    type: 'confirm',
+    reservation: null,
+    loading: false
+  })
 
-  useEffect(() => {
-    fetchReservations()
-  }, [user, filter])
-
-  const fetchReservations = async () => {
+  const fetchReservations = useCallback(async () => {
     if (!user) return
 
     try {
@@ -25,12 +45,10 @@ const ReservationManagement: React.FC = () => {
         .from('reservations')
         .select(`
           *,
-          services (
+          services!inner (
             *,
-            ports (*),
-            users!services_provider_id_fkey (name, email, company)
-          ),
-          users!reservations_captain_id_fkey (name, email, company)
+            ports (*)
+          )
         `)
 
       // Filter based on user role
@@ -38,8 +56,10 @@ const ReservationManagement: React.FC = () => {
         query = query.eq('services.provider_id', user.id)
       } else if (user.role === 'captain') {
         query = query.eq('captain_id', user.id)
+      } else if (user.role === 'terminal') {
+        // Terminal operators can only see reservations for their assigned port
+        query = query.eq('services.port_id', user.port_id)
       }
-      // Terminal operators can see all reservations
 
       // Apply status filter
       if (filter !== 'all') {
@@ -53,15 +73,21 @@ const ReservationManagement: React.FC = () => {
       if (error) throw error
       setReservations(data || [])
     } catch (error) {
-      console.error('Error fetching reservations:', error)
+      showError('Failed to load reservations', 'Please refresh the page and try again')
     } finally {
       setLoading(false)
     }
-  }
+  }, [user, filter])
+
+  useEffect(() => {
+    fetchReservations()
+  }, [fetchReservations])
 
   const updateReservationStatus = async (reservationId: string, status: string, notes?: string) => {
+    setConfirmModal(prev => ({ ...prev, loading: true }))
+
     try {
-      const updateData: any = { status }
+      const updateData: { status: string; provider_notes?: string } = { status }
       if (notes !== undefined) {
         updateData.provider_notes = notes
       }
@@ -73,31 +99,26 @@ const ReservationManagement: React.FC = () => {
 
       if (error) throw error
 
-      alert(`Reservation ${status} successfully!`)
+      const statusMessages = {
+        confirmed: 'Reservation confirmed successfully!',
+        rejected: 'Reservation rejected successfully!',
+        completed: 'Reservation marked as completed!'
+      }
+
+      showSuccess('Status Updated', statusMessages[status as keyof typeof statusMessages] || `Reservation ${status} successfully!`)
       fetchReservations()
       setSelectedReservation(null)
       setProviderNotes('')
-    } catch (error: any) {
-      alert(error.message)
+      setConfirmModal({ isOpen: false, type: 'confirm', reservation: null, loading: false })
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred'
+      showError('Failed to update reservation', errorMessage)
+    } finally {
+      setConfirmModal(prev => ({ ...prev, loading: false }))
     }
   }
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'pending':
-        return 'bg-yellow-100 text-yellow-800 border-yellow-200'
-      case 'confirmed':
-        return 'bg-green-100 text-green-800 border-green-200'
-      case 'rejected':
-        return 'bg-red-100 text-red-800 border-red-200'
-      case 'completed':
-        return 'bg-blue-100 text-blue-800 border-blue-200'
-      case 'cancelled':
-        return 'bg-gray-100 text-gray-800 border-gray-200'
-      default:
-        return 'bg-gray-100 text-gray-800 border-gray-200'
-    }
-  }
+
 
   const getServiceTypeIcon = (type: string) => {
     switch (type) {
@@ -109,9 +130,9 @@ const ReservationManagement: React.FC = () => {
     }
   }
 
-  const canManageReservation = (reservation: Reservation) => {
+  const canManageReservation = (reservation: ReservationWithService) => {
     if (user?.role === 'provider') {
-      return (reservation as any).services?.provider_id === user.id
+      return reservation.services?.provider_id === user.id
     }
     if (user?.role === 'terminal') {
       return true
@@ -121,8 +142,8 @@ const ReservationManagement: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+      <div className="h-64">
+        <LoadingSpinner size="lg" text="Loading reservations..." />
       </div>
     )
   }
@@ -137,7 +158,7 @@ const ReservationManagement: React.FC = () => {
         <div className="flex items-center space-x-4">
           <select
             value={filter}
-            onChange={(e) => setFilter(e.target.value as any)}
+            onChange={(e) => setFilter(e.target.value as 'all' | 'pending' | 'confirmed' | 'completed')}
             className="text-sm border-gray-300 rounded-md"
           >
             <option value="all">All Status</option>
@@ -182,7 +203,7 @@ const ReservationManagement: React.FC = () => {
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-4">
                     <div className="text-2xl">
-                      {getServiceTypeIcon((reservation as any).services?.type || 'tugboat')}
+                      {getServiceTypeIcon(reservation.services?.type || 'tugboat')}
                     </div>
                     <div className="flex-1">
                       <div className="flex items-center space-x-2">
@@ -196,7 +217,7 @@ const ReservationManagement: React.FC = () => {
                         )}
                       </div>
                       <p className="text-sm text-gray-600">
-                        {(reservation as any).services?.name} • {(reservation as any).services?.ports?.name}
+                        {reservation.services?.name} • {reservation.services?.ports?.name}
                       </p>
                       <div className="flex items-center mt-1 text-xs text-gray-500 space-x-4">
                         <div className="flex items-center">
@@ -210,7 +231,7 @@ const ReservationManagement: React.FC = () => {
                         {user?.role !== 'captain' && (
                           <div className="flex items-center">
                             <Ship className="h-3 w-3 mr-1" />
-                            {(reservation as any).users?.name}
+                            {reservation.users?.name}
                           </div>
                         )}
                       </div>
@@ -227,14 +248,20 @@ const ReservationManagement: React.FC = () => {
                       </div>
                     )}
                     
-                    <span className={`px-3 py-1 text-xs font-medium rounded-full border ${getStatusColor(reservation.status)}`}>
-                      {reservation.status.charAt(0).toUpperCase() + reservation.status.slice(1)}
-                    </span>
+                    <StatusBadge
+                      status={reservation.status as 'pending' | 'confirmed' | 'rejected' | 'completed' | 'cancelled'}
+                      size="sm"
+                    />
                     
                     {canManageReservation(reservation) && reservation.status === 'pending' && (
                       <div className="flex space-x-2">
                         <button
-                          onClick={() => updateReservationStatus(reservation.id, 'confirmed')}
+                          onClick={() => setConfirmModal({
+                            isOpen: true,
+                            type: 'confirm',
+                            reservation,
+                            loading: false
+                          })}
                           className="p-2 text-green-600 hover:bg-green-50 rounded-full"
                           title="Confirm"
                         >
@@ -255,7 +282,12 @@ const ReservationManagement: React.FC = () => {
                     
                     {reservation.status === 'confirmed' && canManageReservation(reservation) && (
                       <button
-                        onClick={() => updateReservationStatus(reservation.id, 'completed')}
+                        onClick={() => setConfirmModal({
+                          isOpen: true,
+                          type: 'complete',
+                          reservation,
+                          loading: false
+                        })}
                         className="px-3 py-1 text-xs font-medium text-blue-600 bg-blue-50 rounded-full hover:bg-blue-100"
                       >
                         Mark Complete
@@ -326,6 +358,29 @@ const ReservationManagement: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Confirmation Modals */}
+      <ConfirmModal
+        isOpen={confirmModal.isOpen && confirmModal.type === 'confirm'}
+        onClose={() => setConfirmModal({ isOpen: false, type: 'confirm', reservation: null, loading: false })}
+        onConfirm={() => confirmModal.reservation && updateReservationStatus(confirmModal.reservation.id, 'confirmed')}
+        title="Confirm Reservation"
+        message={`Are you sure you want to confirm the reservation for ${confirmModal.reservation?.ship_name}?`}
+        type="success"
+        confirmText="Confirm"
+        loading={confirmModal.loading}
+      />
+
+      <ConfirmModal
+        isOpen={confirmModal.isOpen && confirmModal.type === 'complete'}
+        onClose={() => setConfirmModal({ isOpen: false, type: 'complete', reservation: null, loading: false })}
+        onConfirm={() => confirmModal.reservation && updateReservationStatus(confirmModal.reservation.id, 'completed')}
+        title="Mark as Complete"
+        message={`Are you sure you want to mark the reservation for ${confirmModal.reservation?.ship_name} as completed?`}
+        type="success"
+        confirmText="Mark Complete"
+        loading={confirmModal.loading}
+      />
     </div>
   )
 }

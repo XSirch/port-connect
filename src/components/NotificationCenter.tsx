@@ -1,8 +1,15 @@
-import React, { useState, useEffect } from 'react'
-import { useAuth } from '../contexts/AuthContext'
-import { supabase } from '../lib/supabase'
+import React, { useState, useEffect, useCallback } from 'react'
+import { useAuth } from '../hooks/useAuth'
+import { useToast } from '../hooks/useToast'
+import { supabase, type Reservation, type Service } from '../lib/supabase'
+
+// Extended type for reservations with joined data
+type ReservationWithService = Reservation & {
+  services?: Service
+}
 import { Bell, X, Check, Clock, Ship } from 'lucide-react'
 import { format } from 'date-fns'
+import LoadingSpinner from './ui/LoadingSpinner'
 
 interface Notification {
   id: string
@@ -21,16 +28,11 @@ interface NotificationCenterProps {
 
 const NotificationCenter: React.FC<NotificationCenterProps> = ({ isOpen, onClose }) => {
   const { user } = useAuth()
+  const { showError } = useToast()
   const [notifications, setNotifications] = useState<Notification[]>([])
   const [loading, setLoading] = useState(false)
 
-  useEffect(() => {
-    if (isOpen && user) {
-      fetchNotifications()
-    }
-  }, [isOpen, user])
-
-  const fetchNotifications = async () => {
+  const fetchNotifications = useCallback(async () => {
     if (!user) return
 
     try {
@@ -38,7 +40,8 @@ const NotificationCenter: React.FC<NotificationCenterProps> = ({ isOpen, onClose
       
       // For now, we'll simulate notifications based on recent reservations
       // In a real app, you'd have a notifications table
-      const { data: reservations, error } = await supabase
+      // Buscar reservas como captain
+      const { data: captainReservations } = await supabase
         .from('reservations')
         .select(`
           *,
@@ -48,14 +51,39 @@ const NotificationCenter: React.FC<NotificationCenterProps> = ({ isOpen, onClose
             ports (name)
           )
         `)
-        .or(`captain_id.eq.${user.id},services.provider_id.eq.${user.id}`)
+        .eq('captain_id', user.id)
         .order('created_at', { ascending: false })
-        .limit(10)
+        .limit(5)
+
+      // Buscar reservas como provider
+      const { data: providerReservations } = await supabase
+        .from('reservations')
+        .select(`
+          *,
+          services!inner (
+            name,
+            type,
+            ports (name)
+          )
+        `)
+        .eq('services.provider_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(5)
+
+      // Combinar e ordenar
+      const allReservations = [
+        ...(captainReservations || []),
+        ...(providerReservations || [])
+      ].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+        .slice(0, 10)
+
+      const reservations = allReservations
+      const error = null
 
       if (error) throw error
 
       // Convert reservations to notifications
-      const mockNotifications: Notification[] = reservations?.map((reservation, index) => {
+      const mockNotifications: Notification[] = (reservations as ReservationWithService[])?.map((reservation, index) => {
         let type: Notification['type'] = 'reservation_created'
         let title = ''
         let message = ''
@@ -65,22 +93,22 @@ const NotificationCenter: React.FC<NotificationCenterProps> = ({ isOpen, onClose
             case 'pending':
               type = 'reservation_created'
               title = 'Reservation Submitted'
-              message = `Your reservation for ${(reservation as any).services?.name} is pending approval`
+              message = `Your reservation for ${reservation.services?.name} is pending approval`
               break
             case 'confirmed':
               type = 'reservation_confirmed'
               title = 'Reservation Confirmed'
-              message = `Your reservation for ${(reservation as any).services?.name} has been confirmed`
+              message = `Your reservation for ${reservation.services?.name} has been confirmed`
               break
             case 'rejected':
               type = 'reservation_rejected'
               title = 'Reservation Rejected'
-              message = `Your reservation for ${(reservation as any).services?.name} was rejected`
+              message = `Your reservation for ${reservation.services?.name} was rejected`
               break
             case 'completed':
               type = 'reservation_completed'
               title = 'Service Completed'
-              message = `Service ${(reservation as any).services?.name} has been completed`
+              message = `Service ${reservation.services?.name} has been completed`
               break
           }
         } else if (user.role === 'provider') {
@@ -88,7 +116,7 @@ const NotificationCenter: React.FC<NotificationCenterProps> = ({ isOpen, onClose
             case 'pending':
               type = 'reservation_created'
               title = 'New Reservation Request'
-              message = `New booking request for ${(reservation as any).services?.name} from ${reservation.ship_name}`
+              message = `New booking request for ${reservation.services?.name} from ${reservation.ship_name}`
               break
             case 'confirmed':
               type = 'reservation_confirmed'
@@ -116,11 +144,17 @@ const NotificationCenter: React.FC<NotificationCenterProps> = ({ isOpen, onClose
 
       setNotifications(mockNotifications)
     } catch (error) {
-      console.error('Error fetching notifications:', error)
+      showError('Failed to load notifications', 'Please try again later')
     } finally {
       setLoading(false)
     }
-  }
+  }, [user])
+
+  useEffect(() => {
+    if (isOpen && user) {
+      fetchNotifications()
+    }
+  }, [isOpen, user, fetchNotifications])
 
   const markAsRead = (notificationId: string) => {
     setNotifications(prev => 
@@ -192,8 +226,8 @@ const NotificationCenter: React.FC<NotificationCenterProps> = ({ isOpen, onClose
         {/* Content */}
         <div className="max-h-96 overflow-y-auto">
           {loading ? (
-            <div className="flex items-center justify-center py-8">
-              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+            <div className="py-8">
+              <LoadingSpinner size="md" text="Loading notifications..." />
             </div>
           ) : notifications.length === 0 ? (
             <div className="px-6 py-8 text-center">

@@ -1,12 +1,11 @@
 import React, { useState, Suspense } from 'react'
-import { AuthProvider, useAuth } from './contexts/AuthContext'
+import { AuthProvider } from './contexts/AuthContext'
+import { useAuth } from './hooks/useAuth'
 import { ToastProvider } from './contexts/ToastContext'
-import ErrorBoundary from './components/ui/ErrorBoundary'
 import Auth from './components/Auth'
 import Layout from './components/Layout'
 import LoadingSpinner from './components/ui/LoadingSpinner'
-import { DashboardSkeleton } from './components/ui/SkeletonLoader'
-import './App.css'
+
 
 // Lazy loading dos componentes principais
 const Dashboard = React.lazy(() => import('./components/Dashboard'))
@@ -34,32 +33,32 @@ const AppContent: React.FC = () => {
     switch (currentPage) {
       case 'dashboard':
         return (
-          <Suspense fallback={<DashboardSkeleton />}>
-            <Dashboard />
+          <Suspense fallback={<LoadingSpinner />}>
+            <Dashboard setCurrentPage={setCurrentPage} />
           </Suspense>
         )
       case 'services':
         return (
-          <Suspense fallback={<DashboardSkeleton />}>
+          <Suspense fallback={<LoadingSpinner />}>
             <ServiceManagement />
           </Suspense>
         )
       case 'reservations':
         return (
-          <Suspense fallback={<DashboardSkeleton />}>
+          <Suspense fallback={<LoadingSpinner />}>
             <ReservationManagement />
           </Suspense>
         )
       case 'management':
         return (
-          <Suspense fallback={<DashboardSkeleton />}>
+          <Suspense fallback={<LoadingSpinner />}>
             <PortManagement />
           </Suspense>
         )
       default:
         return (
-          <Suspense fallback={<DashboardSkeleton />}>
-            <Dashboard />
+          <Suspense fallback={<LoadingSpinner />}>
+            <Dashboard setCurrentPage={setCurrentPage} />
           </Suspense>
         )
     }
@@ -67,22 +66,18 @@ const AppContent: React.FC = () => {
 
   return (
     <Layout currentPage={currentPage} onNavigate={setCurrentPage}>
-      <ErrorBoundary>
-        {renderCurrentPage()}
-      </ErrorBoundary>
+      {renderCurrentPage()}
     </Layout>
   )
 }
 
 function App() {
   return (
-    <ErrorBoundary>
-      <ToastProvider>
-        <AuthProvider>
-          <AppContent />
-        </AuthProvider>
-      </ToastProvider>
-    </ErrorBoundary>
+    <ToastProvider>
+      <AuthProvider>
+        <AppContent />
+      </AuthProvider>
+    </ToastProvider>
   )
 }
 

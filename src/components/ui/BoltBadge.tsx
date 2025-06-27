@@ -1,6 +1,4 @@
 import React from 'react'
-import logoTextPoweredBy from '../../assets/logotext_poweredby_360w.png'
-import blackCircle from '../../assets/black_circle_360x360.png'
 
 interface BoltBadgeProps {
   variant?: 'default' | 'compact' | 'icon-only'
@@ -27,7 +25,7 @@ const BoltBadge: React.FC<BoltBadgeProps> = ({
             className={`inline-flex items-center px-3 py-2 bg-white rounded-lg shadow-medium hover:shadow-strong border border-secondary-200 ${baseClasses} ${className}`}
           >
             <img
-              src={blackCircle}
+              src="/black_circle_360x360.png"
               alt="Bolt.new"
               className="h-6 w-6 mr-2"
             />
@@ -45,7 +43,7 @@ const BoltBadge: React.FC<BoltBadgeProps> = ({
             title="Built with Bolt.new"
           >
             <img
-              src={blackCircle}
+              src="/black_circle_360x360.png"
               alt="Bolt.new"
               className="h-8 w-8"
             />
@@ -61,7 +59,7 @@ const BoltBadge: React.FC<BoltBadgeProps> = ({
             className={`inline-flex items-center bg-white rounded-xl shadow-medium hover:shadow-strong border border-secondary-200 ${baseClasses} ${className}`}
           >
             <img
-              src={logoTextPoweredBy}
+              src="/logotext_poweredby_360w.png"
               alt="Powered by Bolt.new"
               className="h-10 w-auto"
             />

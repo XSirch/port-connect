@@ -1,14 +1,27 @@
 import React, { useState, useEffect } from 'react'
-import { useAuth } from '../contexts/AuthContext'
+import { useAuth } from '../hooks/useAuth'
+import { useToast } from '../hooks/useToast'
 import { supabase, type Port } from '../lib/supabase'
 import { Plus, Edit, Trash2, MapPin, Clock, Globe } from 'lucide-react'
+import LoadingSpinner from './ui/LoadingSpinner'
+import ConfirmModal from './ui/ConfirmModal'
 
 const PortManagement: React.FC = () => {
   const { user } = useAuth()
+  const { showSuccess, showError } = useToast()
   const [ports, setPorts] = useState<Port[]>([])
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
   const [editingPort, setEditingPort] = useState<Port | null>(null)
+  const [deleteModal, setDeleteModal] = useState<{
+    isOpen: boolean
+    port: Port | null
+    loading: boolean
+  }>({
+    isOpen: false,
+    port: null,
+    loading: false
+  })
   const [formData, setFormData] = useState({
     name: '',
     code: '',
@@ -33,7 +46,7 @@ const PortManagement: React.FC = () => {
       if (error) throw error
       setPorts(data || [])
     } catch (error) {
-      console.error('Error fetching ports:', error)
+      showError('Failed to load ports', 'Please refresh the page and try again')
     } finally {
       setLoading(false)
     }
@@ -50,20 +63,21 @@ const PortManagement: React.FC = () => {
           .eq('id', editingPort.id)
 
         if (error) throw error
-        alert('Port updated successfully!')
+        showSuccess('Port updated successfully!', 'The port information has been updated.')
       } else {
         const { error } = await supabase
           .from('ports')
           .insert([formData])
 
         if (error) throw error
-        alert('Port created successfully!')
+        showSuccess('Port created successfully!', 'The new port has been added.')
       }
 
       resetForm()
       fetchPorts()
-    } catch (error: any) {
-      alert(error.message)
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred'
+      showError('Failed to save port', errorMessage)
     }
   }
 
@@ -79,9 +93,7 @@ const PortManagement: React.FC = () => {
   }
 
   const handleDelete = async (portId: string) => {
-    if (!confirm('Are you sure you want to delete this port? This will also delete all associated services and reservations.')) {
-      return
-    }
+    setDeleteModal(prev => ({ ...prev, loading: true }))
 
     try {
       const { error } = await supabase
@@ -90,10 +102,14 @@ const PortManagement: React.FC = () => {
         .eq('id', portId)
 
       if (error) throw error
-      alert('Port deleted successfully!')
+      showSuccess('Port deleted successfully!', 'The port and all associated data have been removed.')
       fetchPorts()
-    } catch (error: any) {
-      alert(error.message)
+      setDeleteModal({ isOpen: false, port: null, loading: false })
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred'
+      showError('Failed to delete port', errorMessage)
+    } finally {
+      setDeleteModal(prev => ({ ...prev, loading: false }))
     }
   }
 
@@ -130,8 +146,8 @@ const PortManagement: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+      <div className="h-64">
+        <LoadingSpinner size="lg" text="Loading ports..." />
       </div>
     )
   }
@@ -184,7 +200,11 @@ const PortManagement: React.FC = () => {
                 <Edit className="h-4 w-4" />
               </button>
               <button
-                onClick={() => handleDelete(port.id)}
+                onClick={() => setDeleteModal({
+                  isOpen: true,
+                  port,
+                  loading: false
+                })}
                 className="p-2 text-gray-400 hover:text-red-600"
                 title="Delete port"
               >
@@ -292,6 +312,18 @@ const PortManagement: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Delete Confirmation Modal */}
+      <ConfirmModal
+        isOpen={deleteModal.isOpen}
+        onClose={() => setDeleteModal({ isOpen: false, port: null, loading: false })}
+        onConfirm={() => deleteModal.port && handleDelete(deleteModal.port.id)}
+        title="Delete Port"
+        message={`Are you sure you want to delete "${deleteModal.port?.name}"? This will also delete all associated services and reservations. This action cannot be undone.`}
+        type="danger"
+        confirmText="Delete"
+        loading={deleteModal.loading}
+      />
     </div>
   )
 }
