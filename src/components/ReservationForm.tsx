@@ -47,7 +47,7 @@ const ReservationForm: React.FC<ReservationFormProps> = ({ onClose, onSuccess })
       if (error) throw error
       setPorts(data || [])
     } catch (error) {
-      console.error('Error fetching ports:', error)
+      // Silently handle errors in production
     }
   }
 
@@ -63,7 +63,7 @@ const ReservationForm: React.FC<ReservationFormProps> = ({ onClose, onSuccess })
       if (error) throw error
       setServices(data || [])
     } catch (error) {
-      console.error('Error fetching services:', error)
+      // Silently handle errors in production
     }
   }
 
@@ -73,33 +73,43 @@ const ReservationForm: React.FC<ReservationFormProps> = ({ onClose, onSuccess })
 
     setLoading(true)
     try {
-      const selectedServiceData = services.find(s => s.id === selectedService)
-      const totalCost = selectedServiceData?.price_per_hour 
-        ? selectedServiceData.price_per_hour * formData.duration_hours 
-        : null
+      // Preparar dados da reserva
+      const reservationData = {
+        service_id: selectedService,
+        captain_id: user.id,
+        ship_name: formData.ship_name.trim(),
+        ship_imo: formData.ship_imo?.trim() || null,
+        requested_date: formData.requested_date,
+        requested_time: formData.requested_time,
+        duration_hours: formData.duration_hours,
+        captain_notes: formData.notes?.trim() || null,
+        status: 'pending' as const
+      }
+
+      console.log('Criando reserva com dados:', reservationData)
 
       const { error } = await supabase
         .from('reservations')
-        .insert([{
-          service_id: selectedService,
-          captain_id: user.id,
-          ship_name: formData.ship_name,
-          ship_imo: formData.ship_imo || null,
-          requested_date: formData.requested_date,
-          requested_time: formData.requested_time,
-          duration_hours: formData.duration_hours,
-          notes: formData.notes || null,
-          total_cost: totalCost,
-          status: 'pending'
-        }])
+        .insert([reservationData])
+        .select()
 
-      if (error) throw error
+      if (error) {
+        console.error('Erro detalhado:', error)
+        throw error
+      }
 
       showSuccess('Reservation created successfully!', 'Your reservation has been submitted and is pending approval.')
       onSuccess()
       onClose()
     } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred'
+
+      let errorMessage = 'An unexpected error occurred'
+      if (error instanceof Error) {
+        errorMessage = error.message
+      } else if (typeof error === 'object' && error !== null && 'message' in error) {
+        errorMessage = String((error as any).message)
+      }
+
       showError('Failed to create reservation', errorMessage)
     } finally {
       setLoading(false)

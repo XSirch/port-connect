@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { useAuth } from '../hooks/useAuth'
 import { useToast } from '../hooks/useToast'
 import { supabase, type Port } from '../lib/supabase'
-import { Plus, Edit, Trash2, MapPin, Clock, Globe } from 'lucide-react'
+import { Plus, Edit, Trash2, MapPin, Clock, Globe, Users } from 'lucide-react'
 import LoadingSpinner from './ui/LoadingSpinner'
 import ConfirmModal from './ui/ConfirmModal'
 
@@ -40,7 +40,10 @@ const PortManagement: React.FC = () => {
       setLoading(true)
       const { data, error } = await supabase
         .from('ports')
-        .select('*')
+        .select(`
+          *,
+          terminal_manager:users!ports_terminal_manager_id_fkey(name, email)
+        `)
         .order('name')
 
       if (error) throw error
@@ -189,6 +192,12 @@ const PortManagement: React.FC = () => {
                 <Clock className="h-4 w-4 mr-2" />
                 {port.timezone}
               </div>
+              {(port as any).terminal_manager && (
+                <div className="flex items-center text-sm text-gray-600">
+                  <Users className="h-4 w-4 mr-2" />
+                  Terminal Manager: {(port as any).terminal_manager.name}
+                </div>
+              )}
             </div>
 
             <div className="flex items-center justify-end space-x-2">

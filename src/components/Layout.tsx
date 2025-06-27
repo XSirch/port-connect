@@ -64,10 +64,12 @@ const Layout: React.FC<LayoutProps> = ({ children, currentPage, onNavigate }) =>
                 </h1>
               </div>
 
-              {/* Compact Bolt.new Badge in Header */}
-              <div className="hidden md:block">
+              {/* Bolt.new Badge - Circular */}
+              <div className="flex items-center">
                 <BoltBadge variant="compact" position="inline" />
               </div>
+
+
             </div>
 
             {/* Navigation */}
@@ -86,6 +88,8 @@ const Layout: React.FC<LayoutProps> = ({ children, currentPage, onNavigate }) =>
               >
                 Reservations
               </Button>
+
+              {/* Provider-specific navigation */}
               {user?.role === 'provider' && (
                 <Button
                   variant={currentPage === 'services' ? 'secondary' : 'ghost'}
@@ -95,13 +99,26 @@ const Layout: React.FC<LayoutProps> = ({ children, currentPage, onNavigate }) =>
                   My Services
                 </Button>
               )}
+
+              {/* Terminal-specific navigation */}
               {user?.role === 'terminal' && (
                 <Button
                   variant={currentPage === 'management' ? 'secondary' : 'ghost'}
                   size="sm"
                   onClick={() => onNavigate('management')}
                 >
-                  Management
+                  Port Operations
+                </Button>
+              )}
+
+              {/* Admin-only navigation (for future admin role) */}
+              {(user?.role as any) === 'admin' && (
+                <Button
+                  variant={currentPage === 'management' ? 'secondary' : 'ghost'}
+                  size="sm"
+                  onClick={() => onNavigate('management')}
+                >
+                  Port Management
                 </Button>
               )}
             </nav>
@@ -181,7 +198,7 @@ const Layout: React.FC<LayoutProps> = ({ children, currentPage, onNavigate }) =>
       </main>
 
       {/* Bolt.new Badge - Required for hackathon */}
-      <BoltBadge variant="default" position="fixed" />
+      <BoltBadge variant="default" position="fixed" draggable={true} />
 
       {/* Notification Center */}
       <NotificationCenter

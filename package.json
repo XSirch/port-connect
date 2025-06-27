@@ -34,10 +34,7 @@
     "build:clean": "npm run clean && npm run build",
     "audit": "npm audit --audit-level moderate",
     "analyze": "npm run build && npx vite-bundle-analyzer dist",
-    "populate-db": "node scripts/populate-database.js",
-    "populate-db:alt": "node scripts/populate-database.js --alternative",
-    "create-users": "node scripts/create-demo-users.js",
-    "setup-demo": "node scripts/create-demo-users.js create"
+    "test": "echo \"No tests specified\" && exit 0"
   },
   "dependencies": {
     "@supabase/auth-ui-react": "^0.4.7",

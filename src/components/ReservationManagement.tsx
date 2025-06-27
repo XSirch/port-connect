@@ -3,10 +3,11 @@ import { useAuth } from '../hooks/useAuth'
 import { useToast } from '../hooks/useToast'
 import { supabase, type Reservation, type Service, type User } from '../lib/supabase'
 import { format } from 'date-fns'
-import { Calendar, Clock, Ship, Check, X } from 'lucide-react'
+import { Calendar, Clock, Ship, Check, X, Ban } from 'lucide-react'
 import LoadingSpinner from './ui/LoadingSpinner'
-import StatusBadge from './ui/StatusBadge'
+import SmartStatusBadge from './ui/SmartStatusBadge'
 import ConfirmModal from './ui/ConfirmModal'
+import CancelReservationModal from './CancelReservationModal'
 
 // Extended type for reservations with joined data
 type ReservationWithService = Reservation & {
@@ -21,7 +22,7 @@ const ReservationManagement: React.FC = () => {
   const { showSuccess, showError } = useToast()
   const [reservations, setReservations] = useState<ReservationWithService[]>([])
   const [loading, setLoading] = useState(true)
-  const [filter, setFilter] = useState<'all' | 'pending' | 'confirmed' | 'completed'>('all')
+  const [filter, setFilter] = useState<'all' | 'pending' | 'confirmed' | 'completed' | 'cancelled'>('all')
   const [selectedReservation, setSelectedReservation] = useState<ReservationWithService | null>(null)
   const [providerNotes, setProviderNotes] = useState('')
   const [confirmModal, setConfirmModal] = useState<{
@@ -34,6 +35,13 @@ const ReservationManagement: React.FC = () => {
     type: 'confirm',
     reservation: null,
     loading: false
+  })
+  const [cancelModal, setCancelModal] = useState<{
+    isOpen: boolean
+    reservation: ReservationWithService | null
+  }>({
+    isOpen: false,
+    reservation: null
   })
 
   const fetchReservations = useCallback(async () => {
@@ -83,13 +91,49 @@ const ReservationManagement: React.FC = () => {
     fetchReservations()
   }, [fetchReservations])
 
-  const updateReservationStatus = async (reservationId: string, status: string, notes?: string) => {
+  const updateReservationApproval = async (reservationId: string, action: 'approve' | 'reject' | 'complete', notes?: string) => {
     setConfirmModal(prev => ({ ...prev, loading: true }))
 
     try {
-      const updateData: { status: string; provider_notes?: string } = { status }
-      if (notes !== undefined) {
-        updateData.provider_notes = notes
+      if (!user) throw new Error('User not authenticated')
+
+      let updateData: any = {}
+      let statusMessage = ''
+
+      if (action === 'complete') {
+        // Only providers can mark as complete
+        if (user.role !== 'provider') throw new Error('Only providers can mark reservations as complete')
+        updateData = {
+          status: 'completed',
+          provider_notes: notes
+        }
+        statusMessage = 'Reservation marked as completed!'
+      } else {
+        // Handle approval/rejection based on user role
+        const now = new Date().toISOString()
+
+        if (user.role === 'terminal') {
+          updateData = {
+            terminal_approval: action === 'approve' ? 'approved' : 'rejected',
+            terminal_approved_at: action === 'approve' ? now : null,
+            terminal_approved_by: action === 'approve' ? user.id : null,
+            terminal_notes: notes
+          }
+          statusMessage = action === 'approve' ? 'Terminal approval granted!' : 'Terminal approval rejected!'
+        } else if (user.role === 'provider') {
+          updateData = {
+            provider_approval: action === 'approve' ? 'approved' : 'rejected',
+            provider_approved_at: action === 'approve' ? now : null,
+            provider_approved_by: action === 'approve' ? user.id : null,
+            provider_notes: notes
+          }
+          statusMessage = action === 'approve' ? 'Provider approval granted!' : 'Provider approval rejected!'
+        } else {
+          throw new Error('Only terminal operators and providers can approve reservations')
+        }
+
+        // Note: The overall status will be updated automatically by the database trigger
+        // based on the terminal_approval and provider_approval values
       }
 
       const { error } = await supabase
@@ -99,13 +143,7 @@ const ReservationManagement: React.FC = () => {
 
       if (error) throw error
 
-      const statusMessages = {
-        confirmed: 'Reservation confirmed successfully!',
-        rejected: 'Reservation rejected successfully!',
-        completed: 'Reservation marked as completed!'
-      }
-
-      showSuccess('Status Updated', statusMessages[status as keyof typeof statusMessages] || `Reservation ${status} successfully!`)
+      showSuccess('Status Updated', statusMessage)
       fetchReservations()
       setSelectedReservation(null)
       setProviderNotes('')
@@ -126,6 +164,7 @@ const ReservationManagement: React.FC = () => {
       case 'bunkering': return '⛽'
       case 'cleaning': return '🧽'
       case 'maintenance': return '🔧'
+      case 'docking': return '🏗️'
       default: return '⚓'
     }
   }
@@ -158,20 +197,21 @@ const ReservationManagement: React.FC = () => {
         <div className="flex items-center space-x-4">
           <select
             value={filter}
-            onChange={(e) => setFilter(e.target.value as 'all' | 'pending' | 'confirmed' | 'completed')}
+            onChange={(e) => setFilter(e.target.value as 'all' | 'pending' | 'confirmed' | 'completed' | 'cancelled')}
             className="text-sm border-gray-300 rounded-md"
           >
             <option value="all">All Status</option>
             <option value="pending">Pending</option>
             <option value="confirmed">Confirmed</option>
             <option value="completed">Completed</option>
+            <option value="cancelled">Cancelled</option>
           </select>
         </div>
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        {['pending', 'confirmed', 'completed', 'all'].map((status) => (
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+        {['pending', 'confirmed', 'completed', 'cancelled', 'all'].map((status) => (
           <div key={status} className="bg-white rounded-lg shadow p-4">
             <div className="text-sm font-medium text-gray-600 capitalize">
               {status === 'all' ? 'Total' : status}
@@ -248,9 +288,13 @@ const ReservationManagement: React.FC = () => {
                       </div>
                     )}
                     
-                    <StatusBadge
+                    <SmartStatusBadge
                       status={reservation.status as 'pending' | 'confirmed' | 'rejected' | 'completed' | 'cancelled'}
+                      terminalApproval={reservation.terminal_approval || 'pending'}
+                      providerApproval={reservation.provider_approval || 'pending'}
+                      userRole={user?.role || 'captain'}
                       size="sm"
+                      showDetailOnHover={true}
                     />
                     
                     {canManageReservation(reservation) && reservation.status === 'pending' && (
@@ -291,6 +335,22 @@ const ReservationManagement: React.FC = () => {
                         className="px-3 py-1 text-xs font-medium text-blue-600 bg-blue-50 rounded-full hover:bg-blue-100"
                       >
                         Mark Complete
+                      </button>
+                    )}
+
+                    {/* Cancel button for captains */}
+                    {user?.role === 'captain' && reservation.captain_id === user.id &&
+                     reservation.status !== 'cancelled' && reservation.status !== 'completed' && (
+                      <button
+                        onClick={() => setCancelModal({
+                          isOpen: true,
+                          reservation
+                        })}
+                        className="px-3 py-1 text-xs font-medium text-red-600 bg-red-50 rounded-full hover:bg-red-100 flex items-center gap-1"
+                        title="Cancel Reservation"
+                      >
+                        <Ban className="h-3 w-3" />
+                        Cancel
                       </button>
                     )}
                   </div>
@@ -349,7 +409,7 @@ const ReservationManagement: React.FC = () => {
                 Cancel
               </button>
               <button
-                onClick={() => updateReservationStatus(selectedReservation.id, 'rejected', providerNotes)}
+                onClick={() => updateReservationApproval(selectedReservation.id, 'reject', providerNotes)}
                 className="px-4 py-2 text-sm font-medium text-white bg-red-600 border border-transparent rounded-md hover:bg-red-700"
               >
                 Reject Reservation
@@ -363,7 +423,7 @@ const ReservationManagement: React.FC = () => {
       <ConfirmModal
         isOpen={confirmModal.isOpen && confirmModal.type === 'confirm'}
         onClose={() => setConfirmModal({ isOpen: false, type: 'confirm', reservation: null, loading: false })}
-        onConfirm={() => confirmModal.reservation && updateReservationStatus(confirmModal.reservation.id, 'confirmed')}
+        onConfirm={() => confirmModal.reservation && updateReservationApproval(confirmModal.reservation.id, 'approve')}
         title="Confirm Reservation"
         message={`Are you sure you want to confirm the reservation for ${confirmModal.reservation?.ship_name}?`}
         type="success"
@@ -374,12 +434,20 @@ const ReservationManagement: React.FC = () => {
       <ConfirmModal
         isOpen={confirmModal.isOpen && confirmModal.type === 'complete'}
         onClose={() => setConfirmModal({ isOpen: false, type: 'complete', reservation: null, loading: false })}
-        onConfirm={() => confirmModal.reservation && updateReservationStatus(confirmModal.reservation.id, 'completed')}
+        onConfirm={() => confirmModal.reservation && updateReservationApproval(confirmModal.reservation.id, 'complete')}
         title="Mark as Complete"
         message={`Are you sure you want to mark the reservation for ${confirmModal.reservation?.ship_name} as completed?`}
         type="success"
         confirmText="Mark Complete"
         loading={confirmModal.loading}
+      />
+
+      {/* Cancel Reservation Modal */}
+      <CancelReservationModal
+        isOpen={cancelModal.isOpen}
+        onClose={() => setCancelModal({ isOpen: false, reservation: null })}
+        reservation={cancelModal.reservation}
+        onSuccess={fetchReservations}
       />
     </div>
   )

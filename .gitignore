@@ -134,3 +134,5 @@ coverage/
 # Misc
 *.tgz
 *.tar.gz
+.gitignore
+.vscode/

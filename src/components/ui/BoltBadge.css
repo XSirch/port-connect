@@ -1,0 +1,192 @@
+/* BoltBadge Component Styles */
+
+/* Draggable badge animations */
+.bolt-badge-draggable {
+  transition: all 0.2s ease-in-out;
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+}
+
+.bolt-badge-draggable:hover {
+  transform: scale(1.05);
+}
+
+.bolt-badge-dragging {
+  transform: scale(1.1);
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  z-index: 9999;
+}
+
+/* Responsive sizing for compact variant */
+.bolt-badge-compact {
+  transition: all 0.2s ease-in-out;
+  width: 48px;
+  height: 48px;
+  min-width: 48px;
+  min-height: 48px;
+}
+
+.bolt-badge-compact:hover {
+  transform: scale(1.05);
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.15);
+}
+
+/* Mobile optimizations */
+@media (max-width: 640px) {
+  .bolt-badge-compact {
+    width: 40px;
+    height: 40px;
+    min-width: 40px;
+    min-height: 40px;
+  }
+}
+
+@media (min-width: 768px) {
+  .bolt-badge-compact {
+    width: 52px;
+    height: 52px;
+    min-width: 52px;
+    min-height: 52px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .bolt-badge-compact {
+    width: 56px;
+    height: 56px;
+    min-width: 56px;
+    min-height: 56px;
+  }
+}
+
+/* Large variant for special screens like login */
+.bolt-badge-large {
+  transition: all 0.3s ease-in-out;
+  width: 120px;
+  height: 120px;
+  min-width: 120px;
+  min-height: 120px;
+  border-width: 3px;
+}
+
+.bolt-badge-large:hover {
+  transform: scale(1.05);
+  box-shadow: 0 20px 40px -5px rgba(0, 0, 0, 0.25);
+}
+
+/* Mobile optimizations for large variant */
+@media (max-width: 640px) {
+  .bolt-badge-large {
+    width: 100px;
+    height: 100px;
+    min-width: 100px;
+    min-height: 100px;
+  }
+}
+
+@media (min-width: 768px) {
+  .bolt-badge-large {
+    width: 140px;
+    height: 140px;
+    min-width: 140px;
+    min-height: 140px;
+  }
+}
+
+/* Default variant dark background for contrast */
+.bolt-badge-default {
+  background: linear-gradient(135deg, #1f2937 0%, #111827 100%);
+  border: 1px solid #374151;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  min-height: 60px;
+  min-width: 120px;
+}
+
+.bolt-badge-default:hover {
+  background: linear-gradient(135deg, #374151 0%, #1f2937 100%);
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+}
+
+/* Responsive sizing for default variant */
+@media (max-width: 640px) {
+  .bolt-badge-default {
+    min-height: 50px;
+    min-width: 100px;
+  }
+}
+
+@media (min-width: 768px) {
+  .bolt-badge-default {
+    min-height: 70px;
+    min-width: 140px;
+  }
+}
+
+/* Draggable indicator */
+.bolt-badge-indicator {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  width: 12px;
+  height: 12px;
+  background: #3b82f6;
+  border-radius: 50%;
+  opacity: 0.6;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 0.6;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.1);
+  }
+}
+
+/* Touch-friendly sizing for mobile */
+@media (max-width: 768px) {
+  .bolt-badge-fixed {
+    min-height: 44px;
+    min-width: 44px;
+  }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .bolt-badge-default {
+    background: #000000;
+    border: 2px solid #ffffff;
+  }
+  
+  .bolt-badge-compact {
+    border: 2px solid #000000;
+  }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  .bolt-badge-draggable,
+  .bolt-badge-compact,
+  .bolt-badge-indicator {
+    transition: none;
+    animation: none;
+  }
+}
+
+/* Focus styles for accessibility */
+.bolt-badge-draggable:focus-within {
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
+}
+
+/* Print styles */
+@media print {
+  .bolt-badge-fixed {
+    display: none;
+  }
+}

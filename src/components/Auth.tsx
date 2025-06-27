@@ -8,6 +8,7 @@ import type { Port } from '../lib/supabase'
 
 const Auth: React.FC = () => {
   const [loading, setLoading] = useState(false)
+  const [authStatus, setAuthStatus] = useState<'idle' | 'authenticating' | 'creating_profile' | 'success'>('idle')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [isSignUp, setIsSignUp] = useState(false)
@@ -75,11 +76,12 @@ const Auth: React.FC = () => {
     }
 
     setLoading(true)
+    setAuthStatus('authenticating')
     setErrors({})
 
     try {
       if (isSignUp) {
-
+        console.log('Auth: Starting sign up process...')
 
         // Ensure we're completely signed out before signup
         await supabase.auth.signOut({ scope: 'local' })
@@ -119,29 +121,31 @@ const Auth: React.FC = () => {
           // If data.session exists, user is automatically logged in
         }
       } else {
-        const { error } = await supabase.auth.signInWithPassword({
+        const { data, error } = await supabase.auth.signInWithPassword({
           email,
           password
         })
 
         if (error) throw error
-        showSuccess('Welcome back!', 'You have been successfully signed in.')
+
+        if (data.session) {
+          setAuthStatus('creating_profile')
+          showSuccess('Welcome back!', 'You have been successfully signed in.')
+          setAuthStatus('success')
+        }
       }
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred'
       showError('Authentication failed', errorMessage)
       setErrors({ general: errorMessage })
+      setAuthStatus('idle')
     } finally {
       setLoading(false)
     }
   }
 
   return (
-    <div className="min-h-screen bg-blue-100 flex items-center justify-center p-4">
-      {/* Teste do Tailwind */}
-      <div className="fixed top-4 left-4 bg-red-500 text-white p-2 rounded">
-        Tailwind Test
-      </div>
+    <div className="min-h-screen bg-blue-100 flex items-center justify-center p-4 relative">
       <div className="w-full max-w-md">
         <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 p-8">
           <div className="text-center mb-8">
@@ -320,7 +324,9 @@ const Auth: React.FC = () => {
               {loading ? (
                 <div className="flex items-center justify-center">
                   <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                  {isSignUp ? 'Creating Account...' : 'Signing In...'}
+                  {authStatus === 'authenticating' && (isSignUp ? 'Creating Account...' : 'Signing In...')}
+                  {authStatus === 'creating_profile' && 'Setting up profile...'}
+                  {authStatus === 'success' && 'Success! Redirecting...'}
                 </div>
               ) : (
                 isSignUp ? 'Create Account' : 'Sign In'
@@ -374,11 +380,12 @@ const Auth: React.FC = () => {
           )}
         </div>
 
-        {/* Bolt.new Badge for Auth Page */}
-        <div className="mt-8 flex justify-center">
-          <BoltBadge variant="compact" position="inline" />
-        </div>
+
+
       </div>
+
+      {/* Bolt.new Badge - Required for hackathon */}
+      <BoltBadge variant="default" position="fixed" draggable={true} />
     </div>
   )
 }

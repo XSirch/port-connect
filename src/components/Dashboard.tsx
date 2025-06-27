@@ -123,6 +123,8 @@ const Dashboard: React.FC<DashboardProps> = ({ setCurrentPage }) => {
         return '🧽'
       case 'maintenance':
         return '🔧'
+      case 'docking':
+        return '🏗️'
       default:
         return '⚓'
     }

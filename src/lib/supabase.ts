@@ -24,11 +24,30 @@ export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
   }
 })
 
-// Database types - using the generated types
-export type User = Database['public']['Tables']['users']['Row']
+// Enum types
+export type ServiceType = 'tugboat' | 'bunkering' | 'cleaning' | 'maintenance' | 'docking'
+export type ReservationStatus = 'pending' | 'confirmed' | 'rejected' | 'completed' | 'cancelled'
+export type ApprovalStatus = 'pending' | 'approved' | 'rejected'
+export type UserRole = 'captain' | 'provider' | 'terminal'
+
+// Database types - using the generated types with custom overrides
+export type User = Database['public']['Tables']['users']['Row'] & {
+  role: UserRole
+}
 export type Port = Database['public']['Tables']['ports']['Row']
-export type Service = Database['public']['Tables']['services']['Row']
-export type Reservation = Database['public']['Tables']['reservations']['Row']
+export type Service = Database['public']['Tables']['services']['Row'] & {
+  type: ServiceType
+}
+export type Reservation = Database['public']['Tables']['reservations']['Row'] & {
+  status: ReservationStatus
+  terminal_approval?: ApprovalStatus
+  provider_approval?: ApprovalStatus
+  terminal_notes?: string
+  terminal_approved_at?: string
+  provider_approved_at?: string
+  terminal_approved_by?: string
+  provider_approved_by?: string
+}
 
 // Insert types for creating new records
 export type UserInsert = Database['public']['Tables']['users']['Insert']
