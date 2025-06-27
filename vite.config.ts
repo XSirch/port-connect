@@ -18,13 +18,7 @@ export default defineConfig({
       }
     },
     sourcemap: false, // Disable sourcemaps in production for security
-    minify: 'terser',
-    terserOptions: {
-      compress: {
-        drop_console: true, // Remove console.log in production
-        drop_debugger: true
-      }
-    }
+    minify: 'esbuild'
   },
   server: {
     port: 5173,

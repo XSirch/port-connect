@@ -3,8 +3,8 @@
   command = "npm run build"
 
 [build.environment]
-  NODE_VERSION = "20"
-  NPM_FLAGS = "--production=false"
+  NODE_VERSION = "20.19.3"
+  NPM_FLAGS = "--legacy-peer-deps"
 
 # SPA redirect for React Router
 [[redirects]]

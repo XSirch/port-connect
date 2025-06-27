@@ -136,3 +136,4 @@ coverage/
 *.tar.gz
 .gitignore
 .vscode/
+.env
