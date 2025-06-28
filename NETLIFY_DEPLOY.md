@@ -13,12 +13,14 @@
 In your Netlify dashboard, go to:
 **Site Settings > Environment Variables**
 
-Add the following variables:
+Add the following variables **EXACTLY** as shown:
 
 ```
-VITE_SUPABASE_URL=https://your-project.supabase.co
-VITE_SUPABASE_ANON_KEY=your-anon-key-here
+VITE_SUPABASE_URL=https://qulorwtqttoyztgfqdbh.supabase.co
+VITE_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF1bG9yd3RxdHRveXp0Z2ZxZGJoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTEwNTAwMjgsImV4cCI6MjA2NjYyNjAyOH0.LFk8MEctOLGC3hKkQ96hesokWFfx70T_CTZg9eTNDJI
 ```
+
+⚠️ **Important**: Copy these values exactly from your local `.env` file!
 
 ### How to get Supabase credentials:
 
