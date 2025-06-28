@@ -1,68 +1,8 @@
 [build]
   publish = "dist"
-  command = "npm cache clean --force && rm -rf node_modules package-lock.json && npm install --force && node check-env.js && npm run build"
+  command = "npm run build"
 
-[build.environment]
-  NODE_VERSION = "20.19.3"
-  NPM_FLAGS = "--legacy-peer-deps --force"
-  # Disable automatic database integrations
-  NETLIFY_SKIP_NEON = "true"
-  NETLIFY_SKIP_PLANETSCALE = "true"
-  NETLIFY_SKIP_FAUNA = "true"
-  # Fix Rollup native module issue
-  NETLIFY_SKIP_CACHE = "true"
-
-# SPA redirect for React Router
 [[redirects]]
   from = "/*"
   to = "/index.html"
   status = 200
-
-# Security headers
-[[headers]]
-  for = "/*"
-  [headers.values]
-    X-Frame-Options = "DENY"
-    X-XSS-Protection = "1; mode=block"
-    X-Content-Type-Options = "nosniff"
-    Referrer-Policy = "strict-origin-when-cross-origin"
-    Permissions-Policy = "camera=(), microphone=(), geolocation=()"
-
-# Cache static assets
-[[headers]]
-  for = "/assets/*"
-  [headers.values]
-    Cache-Control = "public, max-age=31536000, immutable"
-
-# Cache images
-[[headers]]
-  for = "/*.png"
-  [headers.values]
-    Cache-Control = "public, max-age=31536000"
-
-[[headers]]
-  for = "/*.jpg"
-  [headers.values]
-    Cache-Control = "public, max-age=31536000"
-
-[[headers]]
-  for = "/*.svg"
-  [headers.values]
-    Cache-Control = "public, max-age=31536000"
-
-# Environment variables - SET THESE IN NETLIFY UI, NOT HERE!
-# Go to: Site Settings > Environment Variables in Netlify Dashboard
-[context.production.environment]
-  VITE_APP_NAME = "PortConnect"
-  VITE_APP_VERSION = "1.0.0"
-  NODE_ENV = "production"
-
-[context.deploy-preview.environment]
-  VITE_APP_NAME = "PortConnect (Preview)"
-  VITE_APP_VERSION = "1.0.0"
-  NODE_ENV = "development"
-
-[context.branch-deploy.environment]
-  VITE_APP_NAME = "PortConnect (Development)"
-  VITE_APP_VERSION = "1.0.0"
-  NODE_ENV = "development"
