@@ -6,6 +6,7 @@ import { ToastProvider } from './contexts/ToastContext'
 import Auth from './components/Auth'
 import Layout from './components/Layout'
 import LoadingSpinner from './components/ui/LoadingSpinner'
+import AuthCleanupTest from './components/AuthCleanupTest'
 
 
 // Lazy loading dos componentes principais
@@ -96,6 +97,8 @@ function App() {
     <ToastProvider>
       <AuthProvider>
         <AppContent />
+        {/* Development only - Auth cleanup testing component */}
+        <AuthCleanupTest />
       </AuthProvider>
     </ToastProvider>
   )

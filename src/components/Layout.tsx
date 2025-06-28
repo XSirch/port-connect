@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
 import { useAuth } from '../hooks/useAuth'
+import { useAuthCleanup } from '../hooks/useAuthCleanup'
 import { Anchor, LogOut, Menu, Bell, User, ChevronDown } from 'lucide-react'
 import NotificationCenter from './NotificationCenter'
 import Button from './ui/Button'
@@ -13,12 +14,18 @@ interface LayoutProps {
 }
 
 const Layout: React.FC<LayoutProps> = ({ children, currentPage, onNavigate }) => {
-  const { user, signOut } = useAuth()
+  const { user } = useAuth()
+  const { quickLogout, completeLogout } = useAuthCleanup()
   const [showNotifications, setShowNotifications] = useState(false)
   const [showUserMenu, setShowUserMenu] = useState(false)
 
   const handleSignOut = async () => {
-    await signOut()
+    try {
+      await quickLogout()
+    } catch (error) {
+      console.error('Logout failed, attempting complete logout:', error)
+      await completeLogout()
+    }
   }
 
   const getRoleVariant = (role: string): 'success' | 'primary' | 'secondary' => {
