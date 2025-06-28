@@ -86,6 +86,11 @@ For local development with type checking, use `npm run build:check`.
 - If it does, check that no Neon-related packages are installed
 - Verify Supabase credentials are correctly set
 
+### Rollup native module error
+- This is a known npm bug with optional dependencies
+- The build command automatically cleans cache and reinstalls
+- If it persists, try clearing Netlify's build cache in Site Settings
+
 ## 📞 Support
 
 If you encounter issues:

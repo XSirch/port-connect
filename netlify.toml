@@ -1,14 +1,16 @@
 [build]
   publish = "dist"
-  command = "node check-env.js && npm run build"
+  command = "npm cache clean --force && rm -rf node_modules package-lock.json && npm install --force && node check-env.js && npm run build"
 
 [build.environment]
   NODE_VERSION = "20.19.3"
-  NPM_FLAGS = "--legacy-peer-deps"
+  NPM_FLAGS = "--legacy-peer-deps --force"
   # Disable automatic database integrations
   NETLIFY_SKIP_NEON = "true"
   NETLIFY_SKIP_PLANETSCALE = "true"
   NETLIFY_SKIP_FAUNA = "true"
+  # Fix Rollup native module issue
+  NETLIFY_SKIP_CACHE = "true"
 
 # SPA redirect for React Router
 [[redirects]]
