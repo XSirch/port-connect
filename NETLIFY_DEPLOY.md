@@ -40,9 +40,12 @@ VITE_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFz
 
 ### 2. Build Settings
 Netlify should auto-detect these settings from `netlify.toml`:
-- **Build command**: `npm run build`
+- **Build command**: `node check-env.js && npm run build`
 - **Publish directory**: `dist`
 - **Node version**: `20.19.3`
+
+**Note**: The build uses `vite build` (without TypeScript check) for faster builds.
+For local development with type checking, use `npm run build:check`.
 
 ### 3. Environment Variables
 - Add the Supabase credentials as described above

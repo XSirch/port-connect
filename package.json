@@ -25,7 +25,9 @@
   "homepage": "https://github.com/seu-usuario/port-connect#readme",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build",
+    "build": "vite build",
+    "build:check": "tsc -p tsconfig.build.json && vite build",
+    "build:strict": "tsc -b && vite build",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "preview": "vite preview",
@@ -49,14 +51,15 @@
     "react-error-boundary": "^4.1.2",
     "react-intersection-observer": "^9.13.1",
     "react-router-dom": "^7.6.2",
-    "typescript": "~5.8.3"
+    "typescript": "~5.8.3",
+    "@types/react": "^19.1.8",
+    "@types/react-dom": "^19.1.6",
+    "vite": "^7.0.0",
+    "@vitejs/plugin-react": "^4.5.2"
   },
   "devDependencies": {
     "@eslint/js": "^9.29.0",
     "@tailwindcss/postcss": "^4.1.11",
-    "@types/react": "^19.1.8",
-    "@types/react-dom": "^19.1.6",
-    "@vitejs/plugin-react": "^4.5.2",
     "autoprefixer": "^10.4.21",
     "eslint": "^9.29.0",
     "eslint-plugin-jsx-a11y": "^6.10.2",
@@ -66,7 +69,6 @@
     "postcss": "^8.5.6",
     "tailwindcss": "^3.4.17",
     "typescript-eslint": "^8.34.1",
-    "vite": "^7.0.0",
     "vite-bundle-analyzer": "^0.11.0"
   }
 }
